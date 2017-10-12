@@ -2,11 +2,77 @@
 title: "README"
 output: html_document
 ---
-#R Assignment 
+#R Assignment
+##Part 1: File Inspection
+
+To inspect files, I first read the files into R using the following: 
+```{r}
+fang <- read.table(file="working_files/fang_et_al_genotypes.txt", sep = "\t", header = TRUE, na.strings="?/?", stringsAsFactors = FALSE)
+snps <- read.table(file="working_files/snp_position.txt",sep = "\t", header=TRUE, na.strings = "?/?", stringsAsFactors = FALSE )
+```
+After some fooling around in the help menu for read.table, I realized that the seperator needed to be specified because the files are not seperated by commas. The default behavior of reading strings as factors would cause issues as well, and I assigned the unknown values from the initial file (?/?) to be NAs using na.strings. 
+Then, I used the following commands to inspect the data:
+```{r}
+str(fang)
+str(snps)
+```
+
+##Data Manipulation
+
+The first step that needs to occur is the removal of the selected genotypes from the overall file to generate two files: One that contains all of the zea mays and one that contains teosinte. I used the dplyr package to filter my data. The first line of code is from lecture, and I used it to determine if my machine had dplyr or not.
+
+```{r}
+if (!require("dplyr")) install.packages("dplyr") 
+library(dplyr)
+maize <- filter(fang, Group == "ZMMIL" | Group == "ZMMLR" | Group == "ZMMMR")
+teosinte <- filter(fang, Group == "ZMPBA" | Group == "ZMPIL" | Group == "ZMPJA")
+```
+
+The next step is to transpose, so I used:
+```{r}
+trans_maize <- t(maize)
+trans_teos <- t(teosinte)
+```
+I saw that the new variables trans_teos and trans_maize were matrices, and felt the need to convert them to dataframes, which also needs to have the strings as factors turned to false to have manipulatable data. 
+
+```{r}
+df_trans_maize <- as.data.frame(trans_maize, stringsAsFactors = FALSE)
+df_trans_teos <- as.data.frame(trans_teos, stringsAsFactors = FALSE)
+```
+
+This gave me transposed data frames. From here, the data needed to be joined together, using the merge command:
+```{r}
+maize_merge <- merge(snps, df_trans_maize, by.x = "SNP_ID", by.y = "row.names")
+teos_merge <- merge(snps, df_trans_teos, by.x = "SNP_ID", by.y = "row.names")
+```
+After the merge, I needed to reorder the columns, so I used:
+```{r}
+rearr_maize <- maize_merge[,c(1,3,4,2,5:1588)]
+rearr_teos <- teos_merge[,c(1,3,4,2,5:990)]
+```
+After checking the order with View, I moved to the next step, which was substituting either "-" or "?" for NA. I found a way to do this using is.na, but the command acts on a data frame, and replaces the NAs in that data frame, and cannot be assigned to a new one. So, I used the following:
+```{r}
+hyph_maize <- rearr_maize
+hyph_maize[is.na(hyph_maize)]<- "-"
+ques_maize <- rearr_maize
+ques_maize[is.na(ques_maize)] <- "?"
+hyph_teos <- rearr_teos
+hyph_teos[is.na(hyph_teos)]<- "-"
+ques_teos <- rearr_teos
+ques_teos[is.na(ques_teos)] <- "?"
+```
+This generated four files, which needed to be sorted, so I used the arrange command as below:
+```{r}
+arr_hyphmaize <- arrange(hyph_maize, desc(Position))
+arr_hyphteos <- arrange(hyph_teos, desc(Position))
+arr_quesmaize <- arrange(ques_maize, Position)
+arr_questeos <- arrange(ques_teos, Position)
+```
+After sorting the four files, I needed to generate 10 files per each of the four in the previous step, for a total of 40 files. I used the following commands to create these:
+
 
 
 You can also embed plots, for example:
-
 ```{r pressure, echo=FALSE}
 plot(pressure)
 ```
