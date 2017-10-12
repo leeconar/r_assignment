@@ -16,6 +16,7 @@ Then, I used the following commands to inspect the data:
 str(fang)
 str(snps)
 ```
+I felt that most of the things that could be covered by other functions are included in the str function, but other options for data inspection are names, dim, typeof, length, most of which are covered under str. 
 
 ##Data Manipulation
 
@@ -86,11 +87,49 @@ lapply(names(questeos_chr_split), function(x){write.table(questeos_chr_split[[x]
 ```
 After generating these 40 files, I deleted the multiple and unknown position files, and moved the 10 relevant files each to a folder named question_files or hyphenated_files, then further into folders based on genotype. 
 
-
-
-You can also embed plots, for example:
-```{r pressure, echo=FALSE}
-plot(pressure)
+For the next part of the assignment, ggplots needed to be generated, and it was suggested to use the reshape2 package, so I ran the following to determine if it was installed or not:
+```{r install reshape}
+if (!require("reshape2")) install.packages("reshape2")
+library(reshape2)
+```
+Once reshape2 was installed and loaded, I usedthe following to make the data tidier:
+```{r melt}
+molten_maize <- melt(rearr_maize)
+molten_teos <- melt(rearr_teos)
+```
+Then, in order to generate a plot of the number of SNPs in each chromosome, I created a table of chromosome SNP observation frequencies:
+```{r}
+maize_table <-as.data.frame(table(molten_maize$Chromosome))
+colnames(maize_table)[1] <- "Maize_Chrom_Number"
+teos_table <-as.data.frame(table(molten_teos$Chromosome))
+colnames(teos_table)[1]<- "Teos_Chrom_Number"
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Then, I used the following to generate a plot of SNPs per chromosome in each genotype:
+
+```{r Install ggplot2}
+if (!require("ggplot2")) install.packages("ggplot2")
+library(ggplot2)
+```
+
+```{r Generate plots of SNPs}
+ggplot(maize_table)+geom_col(aes(x=Maize_Chrom_Number, y=Freq))
+ggplot(teos_table)+geom_col(aes(x=Teos_Chrom_Number, y=Freq))
+```
+
+The next plot that it was necessary to generate was the plot of the proportion of homozygous and heterozygous sites and missing data in each species and each group. To do this, I
+```{r}
+
+```
+
+Finally, there was a plot of my own choice, and I chose to visualize the locations of all SNPs within each of their chromosomes. This plot has an extremely cluttered x-axis, but I couldn't unclutter it without converting that column to numeric data, which ggplot2 apparently cannot use. The smaller values start on the left of the x axis, and increase moving right(as is normal on a numerical axis).
+```{r}
+ggplot(rearr_teos)+geom_point(aes(x=Position, y=Chromosome))
+```
+I attempted to fix this plot by changing the size and angle of the x axis labels:
+```{r}
+ggplot(rearr_teos)+geom_point(aes(x=Position, y=Chromosome))+theme(axis.text.x = element_text(face="plain", size = 8, angle=60))
+```
+But this plot is also unreadable on the x axis. However, the plot still gives us relative locations within each of the chromosomes where we find each SNP. 
+
+
