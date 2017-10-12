@@ -6,22 +6,24 @@ output: html_document
 ##Part 1: File Inspection
 
 To inspect files, I first read the files into R using the following: 
-```{r}
+```{r Reading data}
 fang <- read.table(file="working_files/fang_et_al_genotypes.txt", sep = "\t", header = TRUE, na.strings="?/?", stringsAsFactors = FALSE)
 snps <- read.table(file="working_files/snp_position.txt",sep = "\t", header=TRUE, na.strings = "?/?", stringsAsFactors = FALSE )
 ```
 After some fooling around in the help menu for read.table, I realized that the seperator needed to be specified because the files are not seperated by commas. The default behavior of reading strings as factors would cause issues as well, and I assigned the unknown values from the initial file (?/?) to be NAs using na.strings. 
 Then, I used the following commands to inspect the data:
-```{r}
+```{r Data Inspection}
 str(fang)
 str(snps)
 ```
 
 ##Data Manipulation
 
+Note: During data manipulation process, I typically used the View command to look at the structure of the data after each step, if possible.
+
 The first step that needs to occur is the removal of the selected genotypes from the overall file to generate two files: One that contains all of the zea mays and one that contains teosinte. I used the dplyr package to filter my data. The first line of code is from lecture, and I used it to determine if my machine had dplyr or not.
 
-```{r}
+```{r filter genotypes}
 if (!require("dplyr")) install.packages("dplyr") 
 library(dplyr)
 maize <- filter(fang, Group == "ZMMIL" | Group == "ZMMLR" | Group == "ZMMMR")
@@ -29,29 +31,29 @@ teosinte <- filter(fang, Group == "ZMPBA" | Group == "ZMPIL" | Group == "ZMPJA")
 ```
 
 The next step is to transpose, so I used:
-```{r}
+```{r Transpose}
 trans_maize <- t(maize)
 trans_teos <- t(teosinte)
 ```
-I saw that the new variables trans_teos and trans_maize were matrices, and felt the need to convert them to dataframes, which also needs to have the strings as factors turned to false to have manipulatable data. 
+I saw that the newly transposed objects trans_teos and trans_maize were matrices, and felt the need to convert them to dataframes, which also needs to have the strings as factors turned to false to have manipulatable data. 
 
-```{r}
+```{r Coerce to data frame}
 df_trans_maize <- as.data.frame(trans_maize, stringsAsFactors = FALSE)
 df_trans_teos <- as.data.frame(trans_teos, stringsAsFactors = FALSE)
 ```
 
 This gave me transposed data frames. From here, the data needed to be joined together, using the merge command:
-```{r}
+```{r Merge files}
 maize_merge <- merge(snps, df_trans_maize, by.x = "SNP_ID", by.y = "row.names")
 teos_merge <- merge(snps, df_trans_teos, by.x = "SNP_ID", by.y = "row.names")
 ```
 After the merge, I needed to reorder the columns, so I used:
-```{r}
+```{r Reorder columns}
 rearr_maize <- maize_merge[,c(1,3,4,2,5:1588)]
 rearr_teos <- teos_merge[,c(1,3,4,2,5:990)]
 ```
 After checking the order with View, I moved to the next step, which was substituting either "-" or "?" for NA. I found a way to do this using is.na, but the command acts on a data frame, and replaces the NAs in that data frame, and cannot be assigned to a new one. So, I used the following:
-```{r}
+```{r NA substitution}
 hyph_maize <- rearr_maize
 hyph_maize[is.na(hyph_maize)]<- "-"
 ques_maize <- rearr_maize
@@ -62,13 +64,27 @@ ques_teos <- rearr_teos
 ques_teos[is.na(ques_teos)] <- "?"
 ```
 This generated four files, which needed to be sorted, so I used the arrange command as below:
-```{r}
+```{r Sort ascending/descending}
 arr_hyphmaize <- arrange(hyph_maize, desc(Position))
 arr_hyphteos <- arrange(hyph_teos, desc(Position))
 arr_quesmaize <- arrange(ques_maize, Position)
 arr_questeos <- arrange(ques_teos, Position)
 ```
-After sorting the four files, I needed to generate 10 files per each of the four in the previous step, for a total of 40 files. I used the following commands to create these:
+After sorting the four files, I needed to generate 10 files per each of the four in the previous step, for a total of 40 files. First I split the data by the chromosome column using:
+```{r Split}
+hyphmaize_chr_split <- split(arr_hyphmaize, arr_hyphmaize$Chromosome)
+quesmaize_chr_split <- split(arr_quesmaize, arr_quesmaize$Chromosome)
+hyphteos_chr_split <- split(arr_hyphteos, arr_hyphteos$Chromosome)
+questeos_chr_split <- split(arr_questeos, arr_questeos$Chromosome)
+```
+Then, I used the function lapply to apply a function to all elements of my list, using a function defined as write.table for each element of the list, and creating files with the prefix of th(teosinte hyphens), tq(teosinte question marks),  mh, and mq (maize equivalents).Then, I used followed the prefix with the name "chromosome", followed by the chromosome number (x):
+```{r File generation with lapply}
+lapply(names(hyphmaize_chr_split), function(x){write.table(hyphmaize_chr_split[[x]], file = paste("mh_chromosome",x, sep = "\t"))})
+lapply(names(quesmaize_chr_split), function(x){write.table(quesmaize_chr_split[[x]], file = paste("mq_chromosome",x, sep = "\t"))})
+lapply(names(hyphteos_chr_split), function(x){write.table(hyphteos_chr_split[[x]], file = paste("th_chromosome",x, sep = "\t"))})
+lapply(names(questeos_chr_split), function(x){write.table(questeos_chr_split[[x]], file = paste("tq_chromosome",x, sep = "\t"))})
+```
+After generating these 40 files, I deleted the multiple and unknown position files, and moved the 10 relevant files each to a folder named question_files or hyphenated_files, then further into folders based on genotype. 
 
 
 
