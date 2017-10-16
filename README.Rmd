@@ -117,10 +117,54 @@ ggplot(maize_table)+geom_col(aes(x=Maize_Chrom_Number, y=Freq))
 ggplot(teos_table)+geom_col(aes(x=Teos_Chrom_Number, y=Freq))
 ```
 
-The next plot that it was necessary to generate was the plot of the proportion of homozygous and heterozygous sites and missing data in each species and each group. To do this, I
+The next plot that it was necessary to generate was the plot of the amount of heterozygosity in each species and group. For this analysis, my data was not formatted correctly. I noticed that the group column was no longer present, so I created a new dataset using the following commands:
 ```{r}
-
+fang2 <- as.data.frame(read.table ("working_files/fang_et_al_genotypes.txt", sep = "\t", header = TRUE))
+snp2 <- as.data.frame(read.table ("working_files/snp_position.txt", sep = "\t", header = TRUE))
+fang2_alt <- fang2[, -2] #remove second column
+fang_molten <- melt(fang2_alt, id= c("Sample_ID", "Group")) #melt data to prepare to join to relevant snp info
+colnames(fang_molten)[c(3,4)] <- c("SNP_ID", "Nucleotides") #Rename columns to better identify data
+snp_rel <- snp2[, c(1,3,4)] #pull relevant info from SNP file, only columns 1,3,4 necessary for plot
 ```
+I only need the info for the 10 chromosomes, not the multiple or unknown data, so we can code those as NA values. 
+```{r}
+snp_rel[snp_rel == "unknown"| snp_rel == "multiple"] <- NA
+```
+I also needed to change the Position and Chromosome columns to numeric data, in order to plot and join correctly. 
+```{r}
+snp_rel$Chromosome <- as.numeric(as.character(snp_rel$Chromosome))
+snp_rel$Position <- as.numeric(as.character(snp_rel$Position))
+```
+Now that the formatting is complete, we simply need to use the merge function to create a data frame that is capable of forming our plot (this may take some time):
+```{r}
+SNP_total <- merge(snp_rel, fang_molten, by="SNP_ID")
+```
+This file now has all relevant info, including group name, to use in creating the last plot. We were instructed in the prompt to create a new column indicating the heterozygosity of the data, so I used the following if/else function to determine if a site was heterozygous or not, or if it had NAs (multiple/unknown). 
+```{r}
+is.hetero <- function(x) {
+  if (x=="C/C" | x=="A/A"|x=="T/T" |x=="G/G") {return("Homo.")}
+  else if (x=="?/?") {return(NA)}
+  else {return("Hetero.")}
+}
+```
+This function was applied to my newly created data set to make a new column named "Heterozygosity".
+```{r}
+SNP_total$Heterozygosity <- lapply(SNP_total$Nucleotides, is.hetero)
+```
+Because the new column is not character data, it cannot yet be plotted, so I coerced it:
+```{r}
+SNP_total$Heterozygosity <- as.character(SNP_total$Heterozygosity)
+```
+I only need to plot the maize and teosinte data, so I pulled them out to enter into a new data frame:
+```{r}
+maize_teos_SNP <- filter(SNP_total, Group == "ZMMIL" | Group == "ZMMLR" | Group == "ZMMMR" | Group == "ZMPBA" | Group == "ZMPIL" | Group == "ZMPJA")
+maize_teos_SNP$Group <- as.character(maize_teos_SNP$Group)
+```
+Now the file is complete, and can be plotted with the following to show how many heterozygous, homozygous, and unknown values are present for each group within species:
+```{r}
+ggplot(maize_teos_SNP, aes(Heterozygosity, ..count..))+geom_bar(aes(fill=Group), position= "dodge")
+```
+
 
 Finally, there was a plot of my own choice, and I chose to visualize the locations of all SNPs within each of their chromosomes. This plot has an extremely cluttered x-axis, but I couldn't unclutter it without converting that column to numeric data, which ggplot2 apparently cannot use. The smaller values start on the left of the x axis, and increase moving right(as is normal on a numerical axis).
 ```{r}
