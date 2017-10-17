@@ -1,0 +1,36 @@
+---
+At your README.Rmd file
+#Line 68 to 72
+
+```{r Sort ascending/descending}
+arr_hyphmaize <- arrange(hyph_maize, desc(Position))
+arr_hyphteos <- arrange(hyph_teos, desc(Position))
+arr_quesmaize <- arrange(ques_maize, Position)
+arr_questeos <- arrange(ques_teos, Position)
+```
+
+Your Position column's level is "Chr", so when you use arrange command, it will treat your numbers as string insteand of numeric and what I got on position via above code is:
+```{}
+95897171
+95541392
+945545
+94285743
+```
+
+And we can not change the column into numeric because there is string "unknown" in the column
+using "mixedorder" command instead of "arrange" command and it will fixed this issue.
+
+#Line 82 to 87:
+  it would be nice to add suffixes for the files your created. R has very lose restriction when reading the files and sometimes these could cause problems to other language users if you write the a csv file without telling others the format.
+
+# For your second part
+
+The requirements are plotting the whole dataset I assume and you need to sorting your sample_ID and groups.
+
+# For your last plotting
+
+use "scale_x_continuous" to set up your plotting scale, or change the position column into numeric. Otherwise you are going to need to set your image with every hunge width to show up all the names, i.e:
+  png(height=2000, width=2000,  file="your_image_name.png")
+Put this code before your plotting will generate a big image. Adjust the height and width until you have all your SNP_Id shows clearly.
+
+  
