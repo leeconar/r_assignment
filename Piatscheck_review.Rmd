@@ -1,0 +1,54 @@
+---
+title: "Piatscheck_review"
+author: "Finn"
+date: "October 17, 2017"
+output: html_document
+---
+
+Conrad Lee's script review.
+
+##Part 1: File Inspection
+
+This part could have include inspecting the dimension of the file (dim, nrow, ncol)
+
+##Data Manipulation
+
+The ``` write.table```  function associated to ```lapply``` here contains a mistake: 
+
+``` write.table(hyphmaize_chr_split[[x]], file = paste("mh_chromosome",x, sep = "\t"))})``` 
+
+The file name can't be separated by tabs. I assume the coder wanted to separate the values in the data.frame with tabs, not the file names. The correct code would then be:
+
+``` write.table(hyphmaize_chr_split[[x]], file = paste("mh_chromosome",x, sep = ""), sep = "\t")})``` 
+
+The same problem applies to the 3 following codes.
+
+## Part 2
+
+### SNPs per chromosome
+
+Using the command ```melt``` needs to be associated with one or two variables. Here the simple use of the command without arguments doesn't change the shapes of the 2 data frames. The following plot can be obtained without using ```melt```.
+
+It would also be recommended to remove the "multiple" and "unknown" SNPs location from the data set with:   
+
+ ```df <- df[!df$Chromosome == "multiple"] ```
+ 
+### Missing data and amount of heterozygosity
+
+Good use of the if loop the here. It was not recommended to use loops but I realize that this one doesn't take that much time and is very efficient.
+
+Also great idea to melt before merging to keep the Group information, I did a way more tidious way. The following plot shows indeed the number of SNPs counts for the teosinte and maize groups. However I believe it was asked to answer how groups have contributed to SNPs in the previous question and including all the groups. I also believe it was asked to use proportions and not counts.
+
+### Your own visualization
+
+The last part is a visualization of the SNP postion on the chromosomes. Two recommendation for a better visualization. First using the ```face_wrap``` option that will separate the plots by chromosome if specified so. Also I recommend to create a density plot as it will be more readable than point on a 1 dimentional axis. The following code should resolve the issue:
+
+ ```ggplot(df, aes(x = Position)) + geom_density() +
+    facet_wrap( ~ Chromosome, ncol=5)
+  ```
+
+
+
+
+
+
